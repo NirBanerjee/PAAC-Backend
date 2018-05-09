@@ -17,7 +17,7 @@ public class Driver {
         // TODO Auto-generated method stub
         PaacApi api = new PaacApi();
         System.out.println(api.getRoutes());
-        
+        System.out.println(api.getStops());
     }
 
 }
