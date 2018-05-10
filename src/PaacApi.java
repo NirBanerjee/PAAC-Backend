@@ -4,7 +4,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import Domains.Direction;
+import Domains.Prediction;
 import Domains.Routes;
 import Domains.Stops;
 
@@ -120,8 +124,9 @@ public class PaacApi {
         return directionList;
     }
     
-    public void getPredictions(List<Stops> stops) throws IOException, JSONException   {
+    public List<Prediction> getPredictions(List<Stops> stops) throws IOException, JSONException, ParseException{
         Map<String, String> params = new HashMap<>();
+        List<Prediction> prdList = new ArrayList<>();
         String rtpidatafeed = "Port Authority Bus";
         List<String> stopIds = new ArrayList<>();
         for (Stops stop : stops) {
@@ -131,8 +136,74 @@ public class PaacApi {
         params.put("rtpidatafeed", rtpidatafeed);
         String endPoint = "/getpredictions";
         String json = this.callAPI(endPoint, params);
-        System.out.println(json);
+        JSONObject obj = new JSONObject(json);
+        JSONObject busTime = (JSONObject) obj.get("bustime-response");
+        JSONArray predictions = busTime.getJSONArray("prd");
+        for (int i = 0; i < predictions.length(); i++)  {
+            JSONObject prdObject = predictions.getJSONObject(i);
+            String typ = prdObject.get("typ").toString();
+            String stopId = prdObject.get("stpid").toString();
+            String stopName = prdObject.get("stpnm").toString();
+            String vehicleId = prdObject.get("vid").toString();
+            String distance = prdObject.get("dstp").toString();
+            String routeId = prdObject.get("rt").toString();
+            String routeDir = prdObject.get("rtdir").toString();
+            String destination = prdObject.get("des").toString();
+            boolean delayed = Boolean.parseBoolean(prdObject.get("dly").toString().toLowerCase());
+            String tmstp = prdObject.get("tmstmp").toString();
+            String pred = prdObject.get("prdtm").toString();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd hh:mm");
+            Date timestamp = sdf.parse(tmstp);
+            Date predTime = sdf.parse(pred);
+            Prediction prd = new Prediction(timestamp, typ, stopId, stopName, vehicleId, distance
+                    ,routeId, routeDir, destination, predTime, delayed);
+            prdList.add(prd);
+        }
+        return prdList;
     }
     
+    public void getTransit(Stops origin, Stops destination) throws IOException, JSONException    {
+        Map<String, String> params = new HashMap<>();
+        String urlStr = Constants.Api.DIRECTIONS_URL + "?key=" + Constants.Api.DIRECTIONS_API_KEY;
+        String dest = destination.getLat().toString() + "," + destination.getLon().toString();
+        String orig = origin.getLat().toString() + "," + origin.getLon().toString();
+        params.put("origin", orig);
+        params.put("destination", dest);
+        params.put("mode", "transit");
+        StringBuilder sb = new StringBuilder(urlStr);
+        for (String key : params.keySet())   {
+            sb.append("&" + key + "=" + params.get(key).replaceAll(" ", "%20"));
+        }
+        urlStr = sb.toString();
+        urlStr = "https://maps.googleapis.com/maps/api/directions/json?key=AIzaSyC7lVdXpT63KbGeBeFVO5iRLZYajXxngP0&mode=transit&origin=40.44889,%20-79.92990&destination=40.54757,%20-80.01847";
+        URL url = new URL(urlStr);
+        URLConnection urlConn = url.openConnection();
+        InputStream in = urlConn.getInputStream();
+        BufferedReader res = new BufferedReader(new InputStreamReader(in, "UTF-8"));
 
+        sb = new StringBuilder();
+        String respLine;
+        while ((respLine = res.readLine()) != null)   {
+            sb.append(respLine);
+        }
+        String response = sb.toString();
+        JSONObject obj = new JSONObject(response);
+        JSONArray jRoutes = obj.getJSONArray("routes");
+        for (int i = 0; i < jRoutes.length(); i++) {
+            JSONObject rtObj = jRoutes.getJSONObject(i);
+            JSONArray jLegs = rtObj.getJSONArray("legs");
+            for (int j = 0; j < jLegs.length(); j++)    {
+                JSONObject legObj = jLegs.getJSONObject(j);
+                JSONArray jSteps = legObj.getJSONArray("steps");
+                for (int k = 0; k < jSteps.length(); k++)   {
+                    JSONObject stepObj = jSteps.getJSONObject(k);
+                    String travelMode = stepObj.get("travel_mode").toString();
+                    if (travelMode != null && travelMode.equals("TRANSIT")) {
+                        System.out.println(stepObj.toString());
+                    }
+                }
+            }
+        }
+        //System.out.println(sb.toString());
+    }
 }
