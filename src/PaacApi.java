@@ -13,6 +13,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import Domains.Direction;
+import Domains.Routes;
 import Domains.Stops;
 
 /**
@@ -39,7 +41,7 @@ public class PaacApi {
     public String callAPI(String endPoint, Map<String, String> params) throws IOException  {
         String urlStr = Constants.Api.BASE_URL + endPoint;
         urlStr = appendQueryParams(urlStr, params);
-        System.out.println(urlStr);
+        //System.out.println(urlStr);
         URL url = new URL(urlStr);
         URLConnection urlConn = url.openConnection();
         InputStream in = urlConn.getInputStream();
@@ -61,16 +63,24 @@ public class PaacApi {
         String json = this.callAPI(endPoint, params);
         JSONObject obj = new JSONObject(json);
         JSONObject busTime = (JSONObject) obj.get("bustime-response");
-        
+        JSONArray routes = busTime.getJSONArray("routes");
+        for (int i = 0; i < routes.length(); i++)    {
+            JSONObject rtObject = routes.getJSONObject(i);
+            Routes rt = new Routes(rtObject.getString("rt")
+                    ,rtObject.getString("rtnm")
+                    ,rtObject.getString("rtclr"));
+            routeList.add(rt);
+        }
+        return routeList;
     }
     
-    public  List<Stops> getStops() throws IOException, JSONException  {
+    public List<Stops> getStops(Routes route, Direction direction) throws IOException, JSONException  {
         Map<String, String> params = new HashMap<>();
         List<Stops> stopList = new ArrayList<>();
-        String dir = "INBOUND";
-        String route = "71D";
+        String dir = direction.getDirection();
+        String rt = route.getRt();
         String rtpidatafeed = "Port Authority Bus";
-        params.put("rt", route);
+        params.put("rt", rt);
         params.put("dir", dir);
         params.put("rtpidatafeed", rtpidatafeed);
         String endPoint = "/getstops";
@@ -90,6 +100,27 @@ public class PaacApi {
         return stopList;
     }
     
+    public List<Direction> getDirections(Routes route) throws IOException, JSONException   {
+        List<Direction> directionList = new ArrayList<>();
+        Map<String, String> params = new HashMap<>();
+        String rtpidatafeed = "Port Authority Bus";
+        String rt = route.getRt();
+        params.put("rtpidatafeed", rtpidatafeed);
+        params.put("rt", rt);
+        String endPoint = "/getdirections";
+        String json = this.callAPI(endPoint, params);
+        JSONObject obj = new JSONObject(json);
+        JSONObject busTime = (JSONObject) obj.get("bustime-response");
+        JSONArray directions = busTime.getJSONArray("directions");
+        for (int i = 0; i < directions.length(); i++)  {
+            JSONObject dirObject = directions.getJSONObject(i);
+            Direction dir = new Direction (dirObject.get("name").toString());
+            directionList.add(dir);
+        }
+        return directionList;
+    }
+    
+    public List
     
 
 }
