@@ -4,8 +4,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import Domains.Stops;
 
 /**
  * @author nirmoho-Mac
@@ -13,7 +21,6 @@ import java.util.Map;
  */
 public class PaacApi {
     private static final PaacApi INSTANCE = new PaacApi();
-    
     public static PaacApi getInstance() {
       return INSTANCE;
     }
@@ -47,15 +54,19 @@ public class PaacApi {
         return sb.toString();
     }
     
-    public String getRoutes() throws IOException   {
+    public List<Routes> getRoutes() throws IOException, JSONException   {
         Map<String, String> params = new HashMap<>();
+        List<Routes> routeList = new ArrayList<>();
         String endPoint = "/getroutes";
         String json = this.callAPI(endPoint, params);
-        return json;
+        JSONObject obj = new JSONObject(json);
+        JSONObject busTime = (JSONObject) obj.get("bustime-response");
+        
     }
     
-    public String getStops() throws IOException {
+    public  List<Stops> getStops() throws IOException, JSONException  {
         Map<String, String> params = new HashMap<>();
+        List<Stops> stopList = new ArrayList<>();
         String dir = "INBOUND";
         String route = "71D";
         String rtpidatafeed = "Port Authority Bus";
@@ -64,8 +75,19 @@ public class PaacApi {
         params.put("rtpidatafeed", rtpidatafeed);
         String endPoint = "/getstops";
         String json = this.callAPI(endPoint, params);
-        return json;
-        
+        JSONObject obj = new JSONObject(json);
+        JSONObject busTime = (JSONObject) obj.get("bustime-response");
+        JSONArray stops = busTime.getJSONArray("stops");
+        for (int i = 0; i < stops.length(); i++)  {
+            JSONObject stopObject = stops.getJSONObject(i);
+            Stops stp = new Stops (stopObject.get("stpid").toString()
+                    , stopObject.get("stpnm").toString()
+                    ,stopObject.getDouble("lat")
+                    ,stopObject.getDouble("lon"));
+            
+            stopList.add(stp);
+        }
+        return stopList;
     }
     
     
