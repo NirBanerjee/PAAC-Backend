@@ -1,10 +1,9 @@
-import java.io.IOException;
-import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 
-import Domains.Stops;
-import Domains.Routes;
 import Domains.Direction;
+import Domains.Routes;
+import Domains.Stops;
 
 /**
  * 
@@ -26,6 +25,11 @@ public class Driver {
         Routes route = new Routes ("71D", "HAMILTON", "#cd5c5c");
         List<Direction> dirList = api.getDirections(route); 
         List<Stops> stopList = api.getStops(route, dirList.get(0));
+        List<Stops> smallList =  new ArrayList<>();
+        for (int i = 0; i < 10; i++)    {
+            smallList.add(stopList.get(i));
+        }
+        api.getPredictions(smallList);
     }
 
 }

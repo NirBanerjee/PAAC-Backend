@@ -120,7 +120,19 @@ public class PaacApi {
         return directionList;
     }
     
-    public List
+    public void getPredictions(List<Stops> stops) throws IOException, JSONException   {
+        Map<String, String> params = new HashMap<>();
+        String rtpidatafeed = "Port Authority Bus";
+        List<String> stopIds = new ArrayList<>();
+        for (Stops stop : stops) {
+            stopIds.add(stop.getStpid());
+        }
+        params.put("stpid", String.join(",", stopIds));
+        params.put("rtpidatafeed", rtpidatafeed);
+        String endPoint = "/getpredictions";
+        String json = this.callAPI(endPoint, params);
+        System.out.println(json);
+    }
     
 
 }
