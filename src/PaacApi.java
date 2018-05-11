@@ -16,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import Domains.BusDetails;
 import Domains.Direction;
 import Domains.Prediction;
 import Domains.Routes;
@@ -162,7 +163,8 @@ public class PaacApi {
         return prdList;
     }
     
-    public void getTransit(Stops origin, Stops destination) throws IOException, JSONException    {
+    public List<BusDetails> getTransit(Stops origin, Stops destination) throws IOException, JSONException    {
+        List<BusDetails> busList = new ArrayList<>();
         Map<String, String> params = new HashMap<>();
         String urlStr = Constants.Api.DIRECTIONS_URL + "?key=" + Constants.Api.DIRECTIONS_API_KEY;
         String dest = destination.getLat().toString() + "," + destination.getLon().toString();
@@ -199,11 +201,40 @@ public class PaacApi {
                     JSONObject stepObj = jSteps.getJSONObject(k);
                     String travelMode = stepObj.get("travel_mode").toString();
                     if (travelMode != null && travelMode.equals("TRANSIT")) {
-                        System.out.println(stepObj.toString());
+                        JSONObject startLoc = (JSONObject) stepObj.get("start_location");
+                        Double sourceLat = Double.parseDouble(startLoc.get("lat").toString());
+                        Double sourceLong = Double.parseDouble(startLoc.get("lng").toString());
+                        JSONObject destLoc = (JSONObject) stepObj.get("end_location");
+                        Double destLat = Double.parseDouble(destLoc.get("lat").toString());
+                        Double destLong = Double.parseDouble(destLoc.get("lng").toString());
+                        
+                        JSONObject transitDet = stepObj.getJSONObject("transit_details");
+                        
+                        int numStops = Integer.parseInt(transitDet.get("num_stops").toString());
+                        JSONObject depTime = transitDet.getJSONObject("departure_time");
+                        Date dep = new Date(Long.parseLong(depTime.get("value").toString()) * 1000);
+                        JSONObject arrTime = transitDet.getJSONObject("arrival_time");
+                        Date arr = new Date(Long.parseLong(arrTime.get("value").toString()) * 1000);
+                        JSONObject line = transitDet.getJSONObject("line");
+                        String routeNum = line.get("short_name").toString();
+                        String headSign = transitDet.get("headsign").toString();
+                        String[] parts = headSign.split("-");
+                        String direction = parts[0];
+                        JSONObject depStop = transitDet.getJSONObject("departure_stop");
+                        String departureStop = depStop.get("name").toString();
+                        JSONObject arrStop = transitDet.getJSONObject("arrival_stop");
+                        String arrivalStop = arrStop.get("name").toString();
+                        
+                        BusDetails bus = new BusDetails(departureStop, routeNum, sourceLat, sourceLong, 
+                                arrivalStop, destLat, destLong, 
+                                dep, arr, direction, 
+                                numStops);
+                        busList.add(bus);
+                        
                     }
                 }
             }
         }
-        //System.out.println(sb.toString());
+        return busList;
     }
 }

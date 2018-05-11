@@ -1,8 +1,7 @@
-import java.util.ArrayList;
 import java.util.List;
 
+import Domains.BusDetails;
 import Domains.Direction;
-import Domains.Prediction;
 import Domains.Routes;
 import Domains.Stops;
 
@@ -35,7 +34,10 @@ public class Driver {
 //        for (Prediction p : prdList)    {
 //            System.out.println(p);
 //        }
-        api.getTransit(stopList.get(0), stopList.get(12));
+        List<BusDetails> busList = api.getTransit(stopList.get(0), stopList.get(12));
+        for (BusDetails bus : busList)  {
+            System.out.println(bus);
+        }
             
     }
 
